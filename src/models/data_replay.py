@@ -69,7 +69,7 @@ class DataReplay(Camera, Reconfigurable):
         """Validates the optional 'dataset_id' attribute if present."""
         if "dataset_id" in attrs:
             dataset_id = attrs["dataset_id"]
-            if not isinstance(dataset_id, str):
+            if dataset_id is not None and not isinstance(dataset_id, str):
                 raise TypeError("'dataset_id' must be a string")
 
     @classmethod
@@ -77,7 +77,7 @@ class DataReplay(Camera, Reconfigurable):
         """Validates the optional 'tags' attribute if present."""
         if "tags" in attrs:
             tags = attrs["tags"]
-            if not isinstance(tags, list):
+            if tags is not None and not isinstance(tags, list):
                 raise TypeError("'tags' must be a list")
 
     @classmethod
@@ -85,7 +85,7 @@ class DataReplay(Camera, Reconfigurable):
         """Validates the optional 'labels' attribute if present."""
         if "labels" in attrs:
             labels = attrs["labels"]
-            if not isinstance(labels, list):
+            if labels is not None and not isinstance(labels, list):
                 raise TypeError("'labels' must be a list")
 
     # Validates JSON Configuration
@@ -103,15 +103,15 @@ class DataReplay(Camera, Reconfigurable):
 
     def _reconfigure_dataset(self, attrs: Dict[str, Any]) -> None:
         """Reconfigures the dataset ID for image filtering."""
-        self.dataset_id = attrs.get("dataset_id", "")
+        self.dataset_id = attrs.get("dataset_id") or ""
 
     def _reconfigure_tags(self, attrs: Dict[str, Any]) -> None:
         """Reconfigures the tags for image filtering."""
-        self.tags = attrs.get("tags", [])
+        self.tags = attrs.get("tags") or []
 
     def _reconfigure_labels(self, attrs: Dict[str, Any]) -> None:
         """Reconfigures the labels for image filtering."""
-        self.labels = attrs.get("labels", [])
+        self.labels = attrs.get("labels") or []
 
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
@@ -179,8 +179,7 @@ class DataReplay(Camera, Reconfigurable):
             if dataset_id != "":
                 filter_args['dataset_id'] = dataset_id
             if len(tags) > 0:
-                filter_args['tags_filter'] =  TagsFilter(tags=tags)
-            filter = Filter(**filter_args)
+                filter_args['tags_filter'] = TagsFilter(tags=tags)
             if len(labels) > 0:
                 filter_args['bbox_labels'] = labels
             filter = Filter(**filter_args)
