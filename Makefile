@@ -11,11 +11,11 @@ endif
 .PHONY: setup build module clean help
 
 # ---- setup --------------------------------------------------------------
-setup:
+setup: clean
 	bash ./setup.sh
 
 # ---- build --------------------------------------------------------------
-build: setup
+build: setup 
 	bash ./build.sh
 
 # ---- module package -----------------------------------------------------

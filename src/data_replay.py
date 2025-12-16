@@ -29,6 +29,8 @@ from viam.utils import struct_to_dict
 from viam.components.camera import Camera
 from viam.logging import getLogger
 
+from datetime import datetime, timezone
+from google.protobuf.timestamp_pb2 import Timestamp
 from PIL import Image
 from io import BytesIO
 
@@ -232,8 +234,21 @@ class DataReplay(Camera, Reconfigurable):
 
         return pil_to_viam_image(img.convert('RGB'), CameraMimeType.JPEG)
     
-    async def get_images(self, *, timeout: Optional[float] = None, **kwargs) -> Tuple[List[NamedImage], ResponseMetadata]:
-        raise NotImplementedError()
+    async def get_images(self, 
+                         *,
+                         timeout: Optional[float] = None,
+                         metadata: Optional[Mapping[str, Any]] = None,
+                         extra: Optional[Mapping[str, Any]] = None,
+                         filter_source_names: Optional[List[str]] = None,
+                         **kwargs,
+                         ) -> Tuple[List[NamedImage], ResponseMetadata]:
+        
+        viam_image = await self.get_image(timeout=timeout)
+        
+        ts = Timestamp()
+        ts.FromDatetime(datetime.now(timezone.utc))
+        
+        return ([NamedImage(name="", image=viam_image)], ResponseMetadata(captured_at=ts))
 
     async def get_point_cloud(
         self, *, extra: Optional[Dict[str, Any]] = None, timeout: Optional[float] = None, **kwargs
