@@ -1,12 +1,11 @@
 import sys
-from typing import Any, ClassVar, Dict, Final, List, Mapping, Optional, Sequence, Tuple, NamedTuple, cast
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Sequence, Tuple, NamedTuple
 from typing_extensions import Self
 
-from viam.media.utils.pil import viam_to_pil_image, pil_to_viam_image, CameraMimeType
+from viam.media.utils.pil import pil_to_viam_image, CameraMimeType
 from viam.app.viam_client import ViamClient
 from viam.media.video import NamedImage, ViamImage
 from viam.proto.common import ResponseMetadata
-from viam.proto.component.camera import GetPropertiesResponse
 from viam.rpc.dial import DialOptions
 
 
@@ -209,16 +208,16 @@ class DataReplay(Camera, Reconfigurable):
 
     async def get_next_binary_image(self, dataset_id, tags, labels, binary_ids) -> Image:
         filter_id = self.filter_id(dataset_id, tags, labels)
-        
+            
         if filter_id not in self.image_index:
             self.image_index[filter_id] = 0
-        
-        binary_data_id = binary_ids[self.image_index[filter_id]].metadata.binary_data_id
 
-        self.image_index[filter_id] += 1
-        if (self.image_index[filter_id] >= len(binary_ids)):
-            self.image_index[filter_id] = 0
+        if not binary_ids:
+            raise ValueError(f"No binary images found for filter={filter_id}")    
+            
+        binary_data_id = binary_ids[self.image_index[filter_id]].metadata.binary_data_id
         
+        self.image_index[filter_id] = (self.image_index[filter_id] + 1) % len(binary_ids)
         binary_data = await self.app_client.data_client.binary_data_by_ids(binary_ids=[binary_data_id])
         
         return Image.open(BytesIO(binary_data[0].binary))
