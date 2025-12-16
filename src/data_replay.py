@@ -24,6 +24,7 @@ from viam.resource.base import ResourceBase
 from viam.resource.types import Model, ModelFamily
 from viam.proto.app.data import Filter, TagsFilter
 from viam.proto.app.data import BinaryID
+from viam.utils import struct_to_dict
 
 from viam.components.camera import Camera
 from viam.logging import getLogger
@@ -33,7 +34,7 @@ from io import BytesIO
 
 LOGGER = getLogger(__name__)
 
-class dataReplay(Camera, Reconfigurable):
+class DataReplay(Camera, Reconfigurable):
     
     class Properties(NamedTuple):
         supports_pcd: bool = False
