@@ -32,8 +32,6 @@ from viam.logging import getLogger
 from PIL import Image
 from io import BytesIO
 
-LOGGER = getLogger(__name__)
-
 class DataReplay(Camera, Reconfigurable):
     
     class Properties(NamedTuple):
@@ -55,6 +53,10 @@ class DataReplay(Camera, Reconfigurable):
     labels: list = []
     binary_ids: dict
     image_index: dict
+
+    def __init__(self, name: str) -> None:
+        super().__init__(name=name)
+        self.logger = getLogger(name)
 
     # Constructor
     @classmethod
@@ -118,17 +120,39 @@ class DataReplay(Camera, Reconfigurable):
 
         return [], []
 
-    # Handles attribute reconfiguration
-    def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
-        attrs = struct_to_dict(config.attributes)
-
-        self.image_index = {}
-        self.binary_ids = {}
-        self.dataset_id = attrs.get("default_dataset_id", "")
-        self.tags = attrs.get("default_tags", [])
-        self.labels = attrs.get("default_labels", [])
+    def _reconfigure_credentials(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures API credentials for Viam data management access."""
         self.api_key = attrs.get("app_api_key", "")
         self.api_key_id = attrs.get("app_api_key_id", "")
+
+    def _reconfigure_dataset(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures the default dataset ID for image filtering."""
+        self.dataset_id = attrs.get("default_dataset_id", "")
+
+    def _reconfigure_tags(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures the default tags for image filtering."""
+        self.tags = attrs.get("default_tags", [])
+
+    def _reconfigure_labels(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures the default labels for image filtering."""
+        self.labels = attrs.get("default_labels", [])
+
+    # Handles attribute reconfiguration
+    def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
+        """Reconfigures the component with new configuration."""
+        attrs = struct_to_dict(config.attributes)
+
+        # Reset internal state
+        self.image_index = {}
+        self.binary_ids = {}
+
+        # Reconfigure all components
+        self._reconfigure_credentials(attrs)
+        self._reconfigure_dataset(attrs)
+        self._reconfigure_tags(attrs)
+        self._reconfigure_labels(attrs)
+
+        self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}")
     
     async def viam_connect(self) -> ViamClient:
         dial_options = DialOptions.with_api_key( 
