@@ -1,12 +1,12 @@
-import sys
+import os, sys
 from typing import Any, ClassVar, Dict, List, Mapping, Optional, Sequence, Tuple, NamedTuple
 from typing_extensions import Self
 
-from viam.media.utils.pil import pil_to_viam_image, CameraMimeType
 from viam.app.viam_client import ViamClient
+from viam.media.utils.pil import pil_to_viam_image, CameraMimeType
 from viam.media.video import NamedImage, ViamImage
 from viam.proto.common import ResponseMetadata
-from viam.rpc.dial import DialOptions
+from viam.rpc.dial import DialOptions, Credentials
 
 
 if sys.version_info >= (3, 10):
@@ -46,12 +46,10 @@ class DataReplay(Camera, Reconfigurable):
         super().__init__(name=name)
         self.logger = getLogger(name)    
         
-        # Initialize viam client  
+        # Initialize viam client
         self.app_client: Optional[ViamClient] = None
-        
+
         # Per-instance state (set mutable defaults)
-        self.api_key_id: str = ""
-        self.api_key: str = ""
         self.dataset_name: str = ""
         self.dataset_id: str = ""
         self.tags: List[str] = []
@@ -65,20 +63,6 @@ class DataReplay(Camera, Reconfigurable):
         my_class = cls(config.name)
         my_class.reconfigure(config, dependencies)
         return my_class
-
-    @classmethod
-    def _validate_api_key(cls, attrs: Dict[str, Any]) -> None:
-        """Validates the required 'app_api_key' attribute."""
-        api_key = attrs.get("app_api_key", "")
-        if not api_key or not isinstance(api_key, str):
-            raise ValueError("'app_api_key' is required and must be a non-empty string")
-
-    @classmethod
-    def _validate_api_key_id(cls, attrs: Dict[str, Any]) -> None:
-        """Validates the required 'app_api_key_id' attribute."""
-        api_key_id = attrs.get("app_api_key_id", "")
-        if not api_key_id or not isinstance(api_key_id, str):
-            raise ValueError("'app_api_key_id' is required and must be a non-empty string")
 
     @classmethod
     def _validate_dataset_id(cls, attrs: Dict[str, Any]) -> None:
@@ -110,21 +94,12 @@ class DataReplay(Camera, Reconfigurable):
         """Validates the configuration for the data replay camera."""
         attrs = struct_to_dict(config.attributes)
 
-        # Validate required attributes
-        cls._validate_api_key(attrs)
-        cls._validate_api_key_id(attrs)
-
         # Validate optional attributes (only if present)
         cls._validate_dataset_id(attrs)
         cls._validate_tags(attrs)
         cls._validate_labels(attrs)
 
         return [], []
-
-    def _reconfigure_credentials(self, attrs: Dict[str, Any]) -> None:
-        """Reconfigures API credentials for Viam data management access."""
-        self.api_key = attrs.get("app_api_key", "")
-        self.api_key_id = attrs.get("app_api_key_id", "")
 
     def _reconfigure_dataset(self, attrs: Dict[str, Any]) -> None:
         """Reconfigures the default dataset ID for image filtering."""
@@ -150,20 +125,38 @@ class DataReplay(Camera, Reconfigurable):
         self.binary_ids = {}
 
         # Reconfigure all components
-        self._reconfigure_credentials(attrs)
         self._reconfigure_dataset(attrs)
         self._reconfigure_tags(attrs)
         self._reconfigure_labels(attrs)
 
-        self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}")
+        self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}")    
+
+    @staticmethod
+    def _get_viam_env_credentials() -> Tuple[str, str]:
+        """Return (api_key, api_key_id) from module-injected env vars, or raise."""
+        api_key = (os.environ.get("VIAM_API_KEY") or "").strip()
+        api_key_id = (os.environ.get("VIAM_API_KEY_ID") or "").strip()
+
+        if not api_key or not api_key_id:
+            raise ValueError(
+                "VIAM_API_KEY and VIAM_API_KEY_ID are not set. "
+                "These are normally injected when running as a Viam module."
+            )
+
+        return api_key, api_key_id
     
     async def viam_connect(self) -> ViamClient:
         """Create a new Viam Cloud connection."""
-        dial_options = DialOptions.with_api_key( 
-            api_key=self.api_key,
-            api_key_id=self.api_key_id
+        api_key, api_key_id = self._get_viam_env_credentials()
+
+        dial_options = DialOptions(
+            credentials=Credentials(
+                type="api-key",
+                payload=api_key,
+            ),
+            auth_entity=api_key_id,
         )
-        
+
         return await ViamClient.create_from_dial_options(dial_options)
     
     async def _ensure_connected(self) -> ViamClient:

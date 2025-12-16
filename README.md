@@ -25,9 +25,7 @@ This module is **not** intended to be a high-throughput streaming camera.
 {
   "default_dataset_id": "<string>",
   "default_tags": ["<string>"],
-  "default_labels": ["<string>"],
-  "app_api_key_id": "<string>",
-  "app_api_key": "<string>"
+  "default_labels": ["<string>"]
 }
 ```
 
@@ -35,11 +33,9 @@ This module is **not** intended to be a high-throughput streaming camera.
 
 ```json
 {
-  "default_dataset_id": "mydatasetid123",
-  "default_tags": ["training", "indoors"],
-  "default_labels": ["fish"],
-  "app_api_key_id": "your-key-id-here",
-  "app_api_key": "your-key-here"
+  "default_dataset_id": "demo",
+  "default_tags": ["demo"],
+  "default_labels": []
 }
 ```
 
@@ -50,8 +46,8 @@ This module is **not** intended to be a high-throughput streaming camera.
 | `default_dataset_id` | string | Optional | Default dataset ID. Can be overridden via `extra.dataset_id`. |
 | `default_tags` | list | Optional | Default tag filter. Can be overridden via `extra.tags`. |
 | `default_labels` | list | Optional | Default bounding-box label filter. Can be overridden via `extra.labels`. |
-| `app_api_key_id` | string | **Required** | Viam app API key ID used to access Data Management. |
-| `app_api_key` | string | **Required** | Viam app API key used to access Data Management. |
+
+**Authentication:** This module automatically uses Viam-provided credentials when running as a module. No API keys need to be configured manually.
 
 ---
 
@@ -75,10 +71,10 @@ Examples:
 
 ```python
 camera.get_image()
-camera.get_image(extra={"dataset_id": "mydatasetid123"})
-camera.get_image(extra={"tags": ["dog", "cat"]})
-camera.get_image(extra={"labels": ["mouse", "rat"]})
-camera.get_image(extra={"dataset_id": "mydatasetid123", "tags": ["dog"], "labels": ["mouse"]})
+camera.get_image(extra={"dataset_id": "demo"})
+camera.get_image(extra={"tags": ["demo"]})
+camera.get_image(extra={"labels": ["person"]})
+camera.get_image(extra={"dataset_id": "demo", "tags": ["demo"], "labels": ["person"]})
 ```
 
 ---
