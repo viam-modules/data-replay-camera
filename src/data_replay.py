@@ -65,25 +65,30 @@ class DataReplay(Camera, Reconfigurable):
 
     # Validates JSON Configuration
     @classmethod
-    def validate(cls, config: ComponentConfig):
-        api_key = config.attributes.fields["app_api_key"].string_value
-        if api_key == "":
-            raise Exception("app_api_key attribute is required")
-        api_key_id = config.attributes.fields["app_api_key_id"].string_value
-        if api_key_id == "":
-            raise Exception("app_api_key_id attribute is required")
-        return
+    def validate_config(cls, config: ComponentConfig) -> Tuple[Sequence[str], Sequence[str]]:
+        attrs = struct_to_dict(config.attributes)
+
+        api_key = attrs.get("app_api_key", "")
+        if not api_key:
+            raise ValueError("app_api_key attribute is required")
+
+        api_key_id = attrs.get("app_api_key_id", "")
+        if not api_key_id:
+            raise ValueError("app_api_key_id attribute is required")
+
+        return [], []
 
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
+        attrs = struct_to_dict(config.attributes)
+
         self.image_index = {}
         self.binary_ids = {}
-        self.dataset_id = config.attributes.fields["default_dataset_id"].string_value or ""
-        self.tags = config.attributes.fields["default_tags"].list_value or []
-        self.labels = config.attributes.fields["default_labels"].list_value or []
-        self.api_key = config.attributes.fields["app_api_key"].string_value
-        self.api_key_id = config.attributes.fields["app_api_key_id"].string_value
-        return
+        self.dataset_id = attrs.get("default_dataset_id", "")
+        self.tags = attrs.get("default_tags", [])
+        self.labels = attrs.get("default_labels", [])
+        self.api_key = attrs.get("app_api_key", "")
+        self.api_key_id = attrs.get("app_api_key_id", "")
     
     async def viam_connect(self) -> ViamClient:
         dial_options = DialOptions.with_api_key( 
