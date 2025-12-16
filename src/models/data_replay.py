@@ -116,8 +116,6 @@ class DataReplay(Camera, Reconfigurable):
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
         """Reconfigures the component with new configuration."""
-        self.app_client = None 
-        
         attrs = struct_to_dict(config.attributes)
 
         # Reset internal state
