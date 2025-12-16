@@ -2,7 +2,7 @@
 
 *data-replay* is a Viam modular service that provides camera capabilities, returning images from a [Viam dataset](https://docs.viam.com/tutorials/services/data-mlmodel-tutorial/#tag-images-and-create-a-dataset) based on a dataset ID, or from [Viam Data Management](https://docs.viam.com/services/data/) filtered by [tags](https://docs.viam.com/tutorials/services/data-mlmodel-tutorial/#tag-images-and-create-a-dataset) or [labels](https://docs.viam.com/services/data/dataset/#label-data).
 
-The model this module makes available is *mcvella:camera:data-replay*
+The model this module makes available is *viam-modules:camera:data-replay*
 
 ## Prerequisites
 
@@ -60,7 +60,7 @@ Example attribute configuration:
 
 ### Attributes
 
-The following attributes are available for `mcvella:camera:data-replay` model:
+The following attributes are available for `viam-modules:camera:data-replay` model:
 
 | Name | Type | Inclusion | Description |
 | ---- | ---- | --------- | ----------- |
