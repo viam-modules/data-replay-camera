@@ -5,6 +5,10 @@ This file registers the model with the Python SDK.
 from viam.components.camera import Camera
 from viam.resource.registry import Registry, ResourceCreatorRegistration
 
-from .data_replay import DataReplay
+from .models.data_replay import DataReplay
 
-Registry.register_resource_creator(Camera.SUBTYPE, DataReplay.MODEL, ResourceCreatorRegistration(DataReplay.new, DataReplay.validate_config))
+Registry.register_resource_creator(
+    Camera.API, 
+    DataReplay.MODEL, 
+    ResourceCreatorRegistration(DataReplay.new, DataReplay.validate_config)    
+)

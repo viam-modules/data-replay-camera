@@ -1,21 +1,13 @@
 import asyncio
 import sys
 
-from viam.module.module import Module
-from viam.components.camera import Camera
-from src.data_replay import DataReplay
+from viam.module.module import Module 
 
-async def main():
-    """
-        This function creates and starts a new module, 
-        after adding all desired resources.
-        Resources must be pre-registered. 
-        For an example, see the `__init__.py` file.
-    """
-    
-    module = Module.from_args()
-    module.add_model_from_registry(Camera.SUBTYPE, DataReplay.MODEL)
-    await module.start()
+try:
+    from src.models.data_replay import DataReplay
+except ModuleNotFoundError:
+    # when running as local module with run.sh
+    from .models.data_replay import DataReplay  # noqa: F401
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(Module.run_from_registry())
