@@ -23,9 +23,9 @@ This module is **not** intended to be a high-throughput streaming camera.
 
 ```json
 {
-  "default_dataset_id": "<string>",
-  "default_tags": ["<string>"],
-  "default_labels": ["<string>"]
+  "dataset_id": "<string>",
+  "tags": ["<string>"],
+  "labels": ["<string>"]
 }
 ```
 
@@ -33,9 +33,9 @@ This module is **not** intended to be a high-throughput streaming camera.
 
 ```json
 {
-  "default_dataset_id": "demo",
-  "default_tags": ["demo"],
-  "default_labels": []
+  "dataset_id": "demo",
+  "tags": ["demo"],
+  "labels": []
 }
 ```
 
@@ -43,9 +43,9 @@ This module is **not** intended to be a high-throughput streaming camera.
 
 | Name | Type | Inclusion | Description |
 |------|------|----------|-------------|
-| `default_dataset_id` | string | Optional | Default dataset ID. Can be overridden via `extra.dataset_id`. |
-| `default_tags` | list | Optional | Default tag filter. Can be overridden via `extra.tags`. |
-| `default_labels` | list | Optional | Default bounding-box label filter. Can be overridden via `extra.labels`. |
+| `dataset_id` | string | Optional | Dataset ID to filter images. |
+| `tags` | list | Optional | Tag filter for images. |
+| `labels` | list | Optional | Bounding-box label filter for images. |
 
 **Authentication:** This module automatically uses Viam-provided credentials when running as a module. No API keys need to be configured manually.
 
@@ -58,23 +58,12 @@ Implements the RDK Camera API:
 - `get_image()`: returns the next image (wraps around after the last)
 - `get_images()`: returns a single image per call (internally calls `get_image()`)
 
-### `get_image()` overrides (via `extra`)
-Pass any of the following in the `extra` dict to override configured defaults:
+The camera returns images filtered by the configured `dataset_id`, `tags`, and `labels`. If multiple filters are provided, results must match **all** constraints.
 
-- `dataset_id` (string): overrides `default_dataset_id`
-- `tags` (list of strings): overrides `default_tags`
-- `labels` (list of strings): overrides `default_labels`
-
-**Filters are combinable:** if you provide multiple (`dataset_id` + `tags` + `labels`), results must match **all** provided constraints.
-
-Examples:
+Example usage:
 
 ```python
 camera.get_image()
-camera.get_image(extra={"dataset_id": "demo"})
-camera.get_image(extra={"tags": ["demo"]})
-camera.get_image(extra={"labels": ["person"]})
-camera.get_image(extra={"dataset_id": "demo", "tags": ["demo"], "labels": ["person"]})
 ```
 
 ---

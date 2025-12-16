@@ -66,27 +66,27 @@ class DataReplay(Camera, Reconfigurable):
 
     @classmethod
     def _validate_dataset_id(cls, attrs: Dict[str, Any]) -> None:
-        """Validates the optional 'default_dataset_id' attribute if present."""
-        if "default_dataset_id" in attrs:
-            dataset_id = attrs["default_dataset_id"]
+        """Validates the optional 'dataset_id' attribute if present."""
+        if "dataset_id" in attrs:
+            dataset_id = attrs["dataset_id"]
             if not isinstance(dataset_id, str):
-                raise TypeError("'default_dataset_id' must be a string")
+                raise TypeError("'dataset_id' must be a string")
 
     @classmethod
     def _validate_tags(cls, attrs: Dict[str, Any]) -> None:
-        """Validates the optional 'default_tags' attribute if present."""
-        if "default_tags" in attrs:
-            tags = attrs["default_tags"]
+        """Validates the optional 'tags' attribute if present."""
+        if "tags" in attrs:
+            tags = attrs["tags"]
             if not isinstance(tags, list):
-                raise TypeError("'default_tags' must be a list")
+                raise TypeError("'tags' must be a list")
 
     @classmethod
     def _validate_labels(cls, attrs: Dict[str, Any]) -> None:
-        """Validates the optional 'default_labels' attribute if present."""
-        if "default_labels" in attrs:
-            labels = attrs["default_labels"]
+        """Validates the optional 'labels' attribute if present."""
+        if "labels" in attrs:
+            labels = attrs["labels"]
             if not isinstance(labels, list):
-                raise TypeError("'default_labels' must be a list")
+                raise TypeError("'labels' must be a list")
 
     # Validates JSON Configuration
     @classmethod
@@ -102,16 +102,16 @@ class DataReplay(Camera, Reconfigurable):
         return [], []
 
     def _reconfigure_dataset(self, attrs: Dict[str, Any]) -> None:
-        """Reconfigures the default dataset ID for image filtering."""
-        self.dataset_id = attrs.get("default_dataset_id", "")
+        """Reconfigures the dataset ID for image filtering."""
+        self.dataset_id = attrs.get("dataset_id", "")
 
     def _reconfigure_tags(self, attrs: Dict[str, Any]) -> None:
-        """Reconfigures the default tags for image filtering."""
-        self.tags = attrs.get("default_tags", [])
+        """Reconfigures the tags for image filtering."""
+        self.tags = attrs.get("tags", [])
 
     def _reconfigure_labels(self, attrs: Dict[str, Any]) -> None:
-        """Reconfigures the default labels for image filtering."""
-        self.labels = attrs.get("default_labels", [])
+        """Reconfigures the labels for image filtering."""
+        self.labels = attrs.get("labels", [])
 
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
@@ -221,18 +221,8 @@ class DataReplay(Camera, Reconfigurable):
         # Ensure connection to Viam Cloud
         await self._ensure_connected()
 
-        dataset_id = self.dataset_id
-        if extra != None and extra.get('dataset_id') != None:
-            dataset_id = extra['dataset_id']
-        tags = self.tags
-        if extra != None and extra.get('tags') != None:
-            tags = extra['tags']
-        labels = self.labels
-        if extra != None and extra.get('labels') != None:
-            labels = extra['labels']
-
-        binary_ids = await self.get_binary_ids(dataset_id, tags, labels)
-        img = await self.get_next_binary_image(dataset_id, tags, labels, binary_ids)
+        binary_ids = await self.get_binary_ids(self.dataset_id, self.tags, self.labels)
+        img = await self.get_next_binary_image(self.dataset_id, self.tags, self.labels, binary_ids)
 
         return pil_to_viam_image(img.convert('RGB'), CameraMimeType.JPEG)
     
