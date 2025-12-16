@@ -1,8 +1,6 @@
-from typing import ClassVar, Mapping, Sequence, Any, Dict, Optional, Tuple, NamedTuple, List, cast
-from typing_extensions import Self
-
 import sys
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, Final, List, Mapping, Optional, Sequence, Tuple, NamedTuple, cast
+from typing_extensions import Self
 
 from viam.media.utils.pil import viam_to_pil_image, pil_to_viam_image, CameraMimeType
 from viam.app.viam_client import ViamClient
@@ -45,20 +43,24 @@ class DataReplay(Camera, Reconfigurable):
     MODEL: ClassVar[Model] = Model(ModelFamily("viam-modules", "camera"), "data-replay")
     
     camera_properties: Camera.Properties = Properties()
-    app_client : None
-    api_key_id: str
-    api_key: str
-    dataset_name: str = ""
-    dataset_id: str = ""
-    tags: list = []
-    labels: list = []
-    binary_ids: dict
-    image_index: dict
 
     def __init__(self, name: str) -> None:
         super().__init__(name=name)
-        self.logger = getLogger(name)
-
+        self.logger = getLogger(name)    
+        
+        # Initialize viam client  
+        self.app_client: Optional[ViamClient] = None
+        
+        # Per-instance state (set mutable defaults)
+        self.api_key_id: str = ""
+        self.api_key: str = ""
+        self.dataset_name: str = ""
+        self.dataset_id: str = ""
+        self.tags: List[str] = []
+        self.labels: List[str] = []
+        self.binary_ids: Dict[str, List] = {}
+        self.image_index: Dict[str, int] = {}
+        
     # Constructor
     @classmethod
     def new(cls, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]) -> Self:
@@ -141,6 +143,8 @@ class DataReplay(Camera, Reconfigurable):
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
         """Reconfigures the component with new configuration."""
+        self.app_client = None 
+        
         attrs = struct_to_dict(config.attributes)
 
         # Reset internal state
@@ -156,12 +160,22 @@ class DataReplay(Camera, Reconfigurable):
         self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}")
     
     async def viam_connect(self) -> ViamClient:
+        """Create a new Viam Cloud connection."""
         dial_options = DialOptions.with_api_key( 
             api_key=self.api_key,
             api_key_id=self.api_key_id
         )
+        
         return await ViamClient.create_from_dial_options(dial_options)
     
+    async def _ensure_connected(self) -> ViamClient:
+        """Lazy connect - reuses existing connection."""
+        if self.app_client is None:
+            self.app_client = await self.viam_connect()
+            self.logger.info("Connected to Viam Cloud")
+            
+        return self.app_client
+        
     def filter_id(self, dataset_id, tags, labels):
         return dataset_id + '---' + ' '.join(tags) + ' '.join(labels)
 
@@ -215,9 +229,8 @@ class DataReplay(Camera, Reconfigurable):
     async def get_image(
         self, mime_type: str = "", *, extra: Optional[Dict[str, Any]] = None, timeout: Optional[float] = None, **kwargs
     ) -> ViamImage:
-        if not hasattr(self, "app_client"):
-            # auth to cloud for data storage
-            self.app_client: ViamClient = await self.viam_connect()
+        # Ensure connection to Viam Cloud
+        await self._ensure_connected()
 
         dataset_id = self.dataset_id
         if extra != None and extra.get('dataset_id') != None:
@@ -234,15 +247,7 @@ class DataReplay(Camera, Reconfigurable):
 
         return pil_to_viam_image(img.convert('RGB'), CameraMimeType.JPEG)
     
-    async def get_images(self, 
-                         *,
-                         timeout: Optional[float] = None,
-                         metadata: Optional[Mapping[str, Any]] = None,
-                         extra: Optional[Mapping[str, Any]] = None,
-                         filter_source_names: Optional[List[str]] = None,
-                         **kwargs,
-                         ) -> Tuple[List[NamedImage], ResponseMetadata]:
-        
+    async def get_images(self, *, timeout: Optional[float] = None, **kwargs) -> Tuple[List[NamedImage], ResponseMetadata]:        
         viam_image = await self.get_image(timeout=timeout)
         
         ts = Timestamp()
