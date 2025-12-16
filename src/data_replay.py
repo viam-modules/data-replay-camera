@@ -15,16 +15,15 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import TypeAlias
 
+from viam.components.camera import Camera
 from viam.module.types import Reconfigurable
 from viam.proto.app.robot import ComponentConfig
-from viam.proto.common import ResourceName, Vector3
+from viam.proto.common import ResourceName
+from viam.proto.app.data import Filter, TagsFilter 
 from viam.resource.base import ResourceBase
 from viam.resource.types import Model, ModelFamily
-from viam.proto.app.data import Filter, TagsFilter
-from viam.proto.app.data import BinaryID
-from viam.utils import struct_to_dict
 
-from viam.components.camera import Camera
+from viam.utils import struct_to_dict
 from viam.logging import getLogger
 
 from datetime import datetime, timezone
@@ -177,12 +176,12 @@ class DataReplay(Camera, Reconfigurable):
         return self.app_client
         
     def filter_id(self, dataset_id, tags, labels):
-        return dataset_id + '---' + ' '.join(tags) + ' '.join(labels)
+        return f"{dataset_id}---{' '.join(tags)}{' '.join(labels)}"
 
     async def get_binary_ids(self, dataset_id, tags, labels):
         filter_id = self.filter_id(dataset_id, tags, labels)
 
-        if not filter_id in self.binary_ids:
+        if filter_id not in self.binary_ids:
             # lookup ids from data management
             self.binary_ids[filter_id] = []
 
@@ -210,20 +209,18 @@ class DataReplay(Camera, Reconfigurable):
 
     async def get_next_binary_image(self, dataset_id, tags, labels, binary_ids) -> Image:
         filter_id = self.filter_id(dataset_id, tags, labels)
-        if not filter_id in self.image_index:
+        
+        if filter_id not in self.image_index:
             self.image_index[filter_id] = 0
         
-        binary_id = BinaryID(
-            file_id = binary_ids[self.image_index[filter_id]].metadata.id,
-            organization_id = binary_ids[self.image_index[filter_id]].metadata.capture_metadata.organization_id,
-            location_id = binary_ids[self.image_index[filter_id]].metadata.capture_metadata.location_id
-        )
+        binary_data_id = binary_ids[self.image_index[filter_id]].metadata.binary_data_id
 
-        self.image_index[filter_id] = self.image_index[filter_id] + 1
+        self.image_index[filter_id] += 1
         if (self.image_index[filter_id] >= len(binary_ids)):
             self.image_index[filter_id] = 0
         
-        binary_data = await self.app_client.data_client.binary_data_by_ids(binary_ids=[binary_id])
+        binary_data = await self.app_client.data_client.binary_data_by_ids(binary_ids=[binary_data_id])
+        
         return Image.open(BytesIO(binary_data[0].binary))
 
     async def get_image(

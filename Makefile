@@ -8,11 +8,16 @@ else
   PY := $(VENV_BIN)/python
 endif
 
-.PHONY: setup build module clean help
+.PHONY: setup test build module clean help
 
 # ---- setup --------------------------------------------------------------
 setup: clean
 	bash ./setup.sh
+
+# ---- test ---------------------------------------------------------------
+test:
+	@echo "Running tests..."
+	$(VENV_BIN)/python -m pytest tests/ -v
 
 # ---- build --------------------------------------------------------------
 build: setup 
@@ -33,6 +38,7 @@ clean:
 help:
 	@echo "Available targets:"
 	@echo "  setup   - Create venv and install dependencies"
+	@echo "  test    - Run unit tests with pytest"
 	@echo "  build   - Build PyInstaller binary and create archive"
 	@echo "  module  - Copy archive to module.tar.gz"
 	@echo "  clean   - Remove build artifacts and venv"
