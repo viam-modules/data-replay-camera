@@ -63,18 +63,58 @@ class DataReplay(Camera, Reconfigurable):
         my_class.reconfigure(config, dependencies)
         return my_class
 
+    @classmethod
+    def _validate_api_key(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the required 'app_api_key' attribute."""
+        api_key = attrs.get("app_api_key", "")
+        if not api_key or not isinstance(api_key, str):
+            raise ValueError("'app_api_key' is required and must be a non-empty string")
+
+    @classmethod
+    def _validate_api_key_id(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the required 'app_api_key_id' attribute."""
+        api_key_id = attrs.get("app_api_key_id", "")
+        if not api_key_id or not isinstance(api_key_id, str):
+            raise ValueError("'app_api_key_id' is required and must be a non-empty string")
+
+    @classmethod
+    def _validate_dataset_id(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the optional 'default_dataset_id' attribute if present."""
+        if "default_dataset_id" in attrs:
+            dataset_id = attrs["default_dataset_id"]
+            if not isinstance(dataset_id, str):
+                raise TypeError("'default_dataset_id' must be a string")
+
+    @classmethod
+    def _validate_tags(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the optional 'default_tags' attribute if present."""
+        if "default_tags" in attrs:
+            tags = attrs["default_tags"]
+            if not isinstance(tags, list):
+                raise TypeError("'default_tags' must be a list")
+
+    @classmethod
+    def _validate_labels(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the optional 'default_labels' attribute if present."""
+        if "default_labels" in attrs:
+            labels = attrs["default_labels"]
+            if not isinstance(labels, list):
+                raise TypeError("'default_labels' must be a list")
+
     # Validates JSON Configuration
     @classmethod
     def validate_config(cls, config: ComponentConfig) -> Tuple[Sequence[str], Sequence[str]]:
+        """Validates the configuration for the data replay camera."""
         attrs = struct_to_dict(config.attributes)
 
-        api_key = attrs.get("app_api_key", "")
-        if not api_key:
-            raise ValueError("app_api_key attribute is required")
+        # Validate required attributes
+        cls._validate_api_key(attrs)
+        cls._validate_api_key_id(attrs)
 
-        api_key_id = attrs.get("app_api_key_id", "")
-        if not api_key_id:
-            raise ValueError("app_api_key_id attribute is required")
+        # Validate optional attributes (only if present)
+        cls._validate_dataset_id(attrs)
+        cls._validate_tags(attrs)
+        cls._validate_labels(attrs)
 
         return [], []
 
