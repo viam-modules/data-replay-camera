@@ -42,7 +42,7 @@ class dataReplay(Camera, Reconfigurable):
         mime_types = [CameraMimeType.JPEG]
     
 
-    MODEL: ClassVar[Model] = Model(ModelFamily("mcvella", "camera"), "data-replay")
+    MODEL: ClassVar[Model] = Model(ModelFamily("viam-modules", "camera"), "data-replay")
     
     camera_properties: Camera.Properties = Properties()
     app_client : None

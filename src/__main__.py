@@ -3,7 +3,7 @@ import sys
 
 from viam.module.module import Module
 from viam.components.camera import Camera
-from .dataReplay import dataReplay
+from .data_replay import dataReplay
 
 async def main():
     """This function creates and starts a new module, after adding all desired resources.

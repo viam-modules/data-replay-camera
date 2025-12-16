@@ -1,12 +1,12 @@
 {
-  "module_id": "mcvella:data-replay-cam",
+  "module_id": "viam-modules:data-replay-camera",
   "visibility": "public",
-  "url": "https://github.com/mcvella/viam-camera-data-replay",
+  "url": "https://github.com/viam-modules/data-replay-camera",
   "description": "A Viam modular camera model that retrieves images from Viam data management based on a dataset",
   "models": [
     {
       "api": "rdk:component:camera",
-      "model": "mcvella:camera:data-replay"
+      "model": "viam-modules:camera:data-replay"
     }
   ],
   "entrypoint": "run.sh"
