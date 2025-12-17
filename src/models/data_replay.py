@@ -145,7 +145,15 @@ class DataReplay(Camera, Reconfigurable):
     
     async def viam_connect(self) -> ViamClient:
         """Create a new Viam Cloud connection."""
-        api_key, api_key_id = self._get_viam_env_credentials()
+        api_key, api_key_id = self._get_viam_env_credentials() 
+        
+        # Helpful debug logging for machine permissions check
+        self.logger.debug(
+            "machine=%s location=%s org=%s",
+            os.getenv("VIAM_MACHINE_ID"),
+            os.getenv("VIAM_LOCATION_ID"),
+            os.getenv("VIAM_PRIMARY_ORG_ID"),
+            )
 
         dial_options = DialOptions(
             credentials=Credentials(
@@ -182,13 +190,17 @@ class DataReplay(Camera, Reconfigurable):
                 filter_args['tags_filter'] = TagsFilter(tags=tags)
             if len(labels) > 0:
                 filter_args['bbox_labels'] = labels
+                
             filter = Filter(**filter_args)
 
             binary_args = {'filter': filter, 'include_binary_data': False}
             # we need to page through results
             done = False
             while not done:
+                self.logger.debug(f"Querying dataset_id={dataset_id} tags={tags} labels={labels}")
                 binary_ids = await self.app_client.data_client.binary_data_by_filter(**binary_args)
+                self.logger.debug(f"Fetched {len(self.binary_ids[filter_id])} binary items for {filter_id}")
+                
                 if len(binary_ids[0]):
                     self.binary_ids[filter_id].extend(binary_ids[0])
                     binary_args['last'] = binary_ids[2]
@@ -223,13 +235,34 @@ class DataReplay(Camera, Reconfigurable):
 
         return pil_to_viam_image(img.convert('RGB'), CameraMimeType.JPEG)
     
-    async def get_images(self, *, timeout: Optional[float] = None, **kwargs) -> Tuple[List[NamedImage], ResponseMetadata]:        
-        viam_image = await self.get_image(timeout=timeout)
+
+
+    async def get_images(
+        self, 
+        *,
+        timeout: Optional[float] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+        extra: Optional[Mapping[str, Any]] = None,
+        filter_source_names: Optional[List[str]] = None,
+        **kwargs
+    ) -> Tuple[List[NamedImage], ResponseMetadata]:
+        # Apply filtering if specified - if filter is provided and our camera name is not in it, return empty
+        if filter_source_names and self.name not in filter_source_names:
+            # Return empty result + empty metadata
+            return [], ResponseMetadata()
+        
+        viam_image: ViamImage = await self.get_image(timeout=timeout)
         
         ts = Timestamp()
         ts.FromDatetime(datetime.now(timezone.utc))
         
-        return ([NamedImage(name="", image=viam_image)], ResponseMetadata(captured_at=ts))
+        named_image = NamedImage(
+            name=self.name,
+            data=viam_image.data,
+            mime_type=viam_image.mime_type,
+        )
+
+        return [named_image], ResponseMetadata()
 
     async def get_point_cloud(
         self, *, extra: Optional[Dict[str, Any]] = None, timeout: Optional[float] = None, **kwargs
