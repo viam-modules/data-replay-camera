@@ -10,7 +10,7 @@
     }
   ],
   "entrypoint": "dist/main",
-  "build": [
-    "make build"
-  ]
+  "build": {
+    "build": "make build"
+  }
 }
