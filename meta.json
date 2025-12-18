@@ -9,5 +9,8 @@
       "model": "viam-modules:camera:data-replay"
     }
   ],
-  "entrypoint": "run.sh"
+  "entrypoint": "dist/main",
+  "build": [
+    "make build"
+  ]
 }
