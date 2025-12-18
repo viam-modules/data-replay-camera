@@ -2,15 +2,16 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Pick a Python interpreter
+# Pick a Python interpreter, preferring 3.11
 choose_py() {
   if command -v py >/dev/null 2>&1; then
-    if py -3 -c "import sys" >/dev/null 2>&1; then echo "py -3"; return; fi
+    if py -3.11 -c "import sys" >/dev/null 2>&1; then echo "py -3.11"; return; fi
+    if py -3    -c "import sys" >/dev/null 2>&1; then echo "py -3";    return; fi
   fi
-  for c in python3 python; do
+  for c in python3.11 python3 python; do
     if command -v "$c" >/dev/null 2>&1; then echo "$c"; return; fi
   done
-  echo "ERROR: No suitable Python found (need >=3.8)." >&2
+  echo "ERROR: No suitable Python found (need >=3.8). Install Python 3.11." >&2
   exit 1
 }
 

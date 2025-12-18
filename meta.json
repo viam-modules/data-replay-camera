@@ -1,16 +1,25 @@
 {
-  "module_id": "viam-modules:data-replay-camera",
+  "$schema": "https://dl.viam.dev/module.schema.json",
+  "module_id": "viam:data-replay-camera",
   "visibility": "public",
   "url": "https://github.com/viam-modules/data-replay-camera",
   "description": "A Viam modular camera model that retrieves images from Viam data management based on a dataset",
   "models": [
     {
       "api": "rdk:component:camera",
-      "model": "viam-modules:camera:data-replay"
+      "model": "viam:data-replay-camera:data-replay"
     }
   ],
   "entrypoint": "dist/main",
+  "first_run": "",
   "build": {
-    "build": "make build"
+    "build": "make build",
+    "path": "dist/archive.tar.gz",
+    "arch": [
+      "linux/amd64",
+      "linux/arm64",
+      "darwin/arm64",
+      "windows/amd64"
+    ]
   }
 }

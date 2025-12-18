@@ -1,20 +1,21 @@
-#!/bin/bash
-cd `dirname $0`
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
 
-if [ -f .installed ]
-  then
-    source viam-env/bin/activate
-  else
-    python3 -m pip install --user virtualenv --break-system-packages
-    python3 -m venv viam-env
-    source viam-env/bin/activate
-    pip3 install --upgrade -r requirements.txt
-    if [ $? -eq 0 ]
-      then
-        touch .installed
-    fi
+# Pick venv python path (Windows vs POSIX)
+if [ -x "venv/bin/python" ]; then
+  PY="venv/bin/python"
+else
+  PY="venv/Scripts/python.exe"
+fi
+
+# Ensure setup has been run
+if [ ! -f "$PY" ]; then
+  echo "Running setup.sh first..."
+  bash ./setup.sh
 fi
 
 # Be sure to use `exec` so that termination signals reach the python process,
 # or handle forwarding termination signals manually
-exec python3 -m src $@
+echo "Starting module..."
+exec "$PY" -m src.main "$@"
