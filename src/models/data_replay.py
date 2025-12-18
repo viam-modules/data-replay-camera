@@ -54,6 +54,8 @@ class DataReplay(Camera, Reconfigurable):
         self.dataset_id: str = ""
         self.tags: List[str] = []
         self.labels: List[str] = []
+        self.api_key: str = ""
+        self.api_key_id: str = ""
         self.binary_ids: Dict[str, List] = {}
         self.image_index: Dict[str, int] = {}
         
@@ -88,6 +90,22 @@ class DataReplay(Camera, Reconfigurable):
             if labels is not None and not isinstance(labels, list):
                 raise TypeError("'labels' must be a list")
 
+    @classmethod
+    def _validate_api_key(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the optional 'api_key' attribute if present."""
+        if "api_key" in attrs:
+            api_key = attrs["api_key"]
+            if api_key is not None and not isinstance(api_key, str):
+                raise TypeError("'api_key' must be a string")
+
+    @classmethod
+    def _validate_api_key_id(cls, attrs: Dict[str, Any]) -> None:
+        """Validates the optional 'api_key_id' attribute if present."""
+        if "api_key_id" in attrs:
+            api_key_id = attrs["api_key_id"]
+            if api_key_id is not None and not isinstance(api_key_id, str):
+                raise TypeError("'api_key_id' must be a string")
+
     # Validates JSON Configuration
     @classmethod
     def validate_config(cls, config: ComponentConfig) -> Tuple[Sequence[str], Sequence[str]]:
@@ -98,6 +116,8 @@ class DataReplay(Camera, Reconfigurable):
         cls._validate_dataset_id(attrs)
         cls._validate_tags(attrs)
         cls._validate_labels(attrs)
+        cls._validate_api_key(attrs)
+        cls._validate_api_key_id(attrs)
 
         return [], []
 
@@ -113,6 +133,14 @@ class DataReplay(Camera, Reconfigurable):
         """Reconfigures the labels for image filtering."""
         self.labels = attrs.get("labels") or []
 
+    def _reconfigure_api_key(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures the API key for authentication."""
+        self.api_key = attrs.get("api_key") or ""
+
+    def _reconfigure_api_key_id(self, attrs: Dict[str, Any]) -> None:
+        """Reconfigures the API key ID for authentication."""
+        self.api_key_id = attrs.get("api_key_id") or ""
+
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
         """Reconfigures the component with new configuration."""
@@ -126,26 +154,39 @@ class DataReplay(Camera, Reconfigurable):
         self._reconfigure_dataset(attrs)
         self._reconfigure_tags(attrs)
         self._reconfigure_labels(attrs)
+        self._reconfigure_api_key(attrs)
+        self._reconfigure_api_key_id(attrs)
 
-        self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}")    
+        api_key_status = "custom" if self.api_key and self.api_key_id else "env"
+        self.logger.info(f"Reconfigured: dataset_id={self.dataset_id or 'none'}, tags={len(self.tags)}, labels={len(self.labels)}, api_key={api_key_status}")    
 
-    @staticmethod
-    def _get_viam_env_credentials() -> Tuple[str, str]:
-        """Return (api_key, api_key_id) from module-injected env vars, or raise."""
+    def _get_viam_credentials(self) -> Tuple[str, str]:
+        """Return (api_key, api_key_id) from config or module-injected env vars.
+
+        Prioritizes config-provided credentials over environment variables.
+        This allows users to override the module-injected credentials when needed
+        (e.g., when the injected credentials don't have dataset access).
+        """
+        # Use config-provided credentials if both are set
+        if self.api_key and self.api_key_id:
+            return self.api_key, self.api_key_id
+
+        # Fall back to environment variables
         api_key = (os.environ.get("VIAM_API_KEY") or "").strip()
         api_key_id = (os.environ.get("VIAM_API_KEY_ID") or "").strip()
 
         if not api_key or not api_key_id:
             raise ValueError(
                 "VIAM_API_KEY and VIAM_API_KEY_ID are not set. "
-                "These are normally injected when running as a Viam module."
+                "Provide them either as config attributes (api_key, api_key_id) "
+                "or as environment variables (normally injected when running as a Viam module)."
             )
 
         return api_key, api_key_id
     
     async def viam_connect(self) -> ViamClient:
         """Create a new Viam Cloud connection."""
-        api_key, api_key_id = self._get_viam_env_credentials() 
+        api_key, api_key_id = self._get_viam_credentials() 
         
         # Helpful debug logging for machine permissions check
         self.logger.debug(

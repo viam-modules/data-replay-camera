@@ -1,2 +1,5 @@
 viam-sdk
 pillow
+python-dotenv
+pytest
+pytest-asyncio

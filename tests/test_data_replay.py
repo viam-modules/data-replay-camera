@@ -10,9 +10,31 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src/models"))
 from data_replay import DataReplay
 
+from viam.proto.app.robot import ComponentConfig
+from google.protobuf.struct_pb2 import Struct
+
 import logging
 logger = logging.getLogger(__name__)
 
+
+
+# ----------------------------
+# Helper functions for creating test configs
+# ----------------------------
+def make_config(name: str = "test-camera", **attrs) -> ComponentConfig:
+    """Helper to create a ComponentConfig with given attributes."""
+    cfg = ComponentConfig(name=name)
+    if attrs:
+        struct = Struct()
+        for key, val in attrs.items():
+            if isinstance(val, str):
+                struct[key] = val
+            elif isinstance(val, list):
+                struct[key] = val
+            else:
+                struct[key] = val
+        cfg.attributes.CopyFrom(struct)
+    return cfg
 
 
 # ----------------------------
@@ -50,7 +72,8 @@ class TestEnvCredentialsUnit:
             (None, None, True),
         ],
     )
-    def test_get_viam_env_credentials(self, monkeypatch, api_key, api_key_id, should_raise):
+    def test_get_viam_credentials_from_env(self, monkeypatch, api_key, api_key_id, should_raise):
+        """Test that credentials are properly read from environment variables."""
         monkeypatch.delenv("VIAM_API_KEY", raising=False)
         monkeypatch.delenv("VIAM_API_KEY_ID", raising=False)
 
@@ -59,13 +82,128 @@ class TestEnvCredentialsUnit:
         if api_key_id is not None:
             monkeypatch.setenv("VIAM_API_KEY_ID", api_key_id)
 
+        dr = DataReplay("test")
         if should_raise:
             with pytest.raises(ValueError, match="VIAM_API_KEY and VIAM_API_KEY_ID"):
-                DataReplay._get_viam_env_credentials()
+                dr._get_viam_credentials()
         else:
-            k, kid = DataReplay._get_viam_env_credentials()
+            k, kid = dr._get_viam_credentials()
             assert k == api_key.strip()
             assert kid == api_key_id.strip()
+
+    def test_config_credentials_override_env(self, monkeypatch):
+        """Test that config-provided credentials take precedence over env vars."""
+        # Set env vars
+        monkeypatch.setenv("VIAM_API_KEY", "env_key")
+        monkeypatch.setenv("VIAM_API_KEY_ID", "env_key_id")
+
+        # Create instance with config credentials
+        dr = DataReplay("test")
+        dr.api_key = "config_key"
+        dr.api_key_id = "config_key_id"
+
+        k, kid = dr._get_viam_credentials()
+        assert k == "config_key"
+        assert kid == "config_key_id"
+
+    def test_partial_config_credentials_falls_back_to_env(self, monkeypatch):
+        """Test that both config credentials must be set to override env vars."""
+        monkeypatch.setenv("VIAM_API_KEY", "env_key")
+        monkeypatch.setenv("VIAM_API_KEY_ID", "env_key_id")
+
+        # Only api_key set (no api_key_id)
+        dr = DataReplay("test")
+        dr.api_key = "config_key"
+        dr.api_key_id = ""
+
+        k, kid = dr._get_viam_credentials()
+        assert k == "env_key"
+        assert kid == "env_key_id"
+
+        # Only api_key_id set (no api_key)
+        dr2 = DataReplay("test")
+        dr2.api_key = ""
+        dr2.api_key_id = "config_key_id"
+
+        k, kid = dr2._get_viam_credentials()
+        assert k == "env_key"
+        assert kid == "env_key_id"
+
+
+class TestConfigValidation:
+    """Tests for configuration attribute validation."""
+
+    def test_validate_api_key_valid_string(self):
+        """Test that api_key accepts valid strings."""
+        config = make_config(api_key="test_key")
+        DataReplay.validate_config(config)
+
+    def test_validate_api_key_invalid_type(self):
+        """Test that api_key rejects non-string types."""
+        config = make_config(api_key=12345)
+        with pytest.raises(TypeError, match="'api_key' must be a string"):
+            DataReplay.validate_config(config)
+
+    def test_validate_api_key_id_valid_string(self):
+        """Test that api_key_id accepts valid strings."""
+        config = make_config(api_key_id="test_key_id")
+        DataReplay.validate_config(config)
+
+    def test_validate_api_key_id_invalid_type(self):
+        """Test that api_key_id rejects non-string types."""
+        config = make_config(api_key_id=12345)
+        with pytest.raises(TypeError, match="'api_key_id' must be a string"):
+            DataReplay.validate_config(config)
+
+    def test_validate_both_api_keys(self):
+        """Test that both api_key and api_key_id can be provided together."""
+        config = make_config(api_key="test_key", api_key_id="test_key_id")
+        DataReplay.validate_config(config)
+
+
+class TestReconfiguration:
+    """Tests for component reconfiguration."""
+
+    def test_reconfigure_api_key(self):
+        """Test that api_key is properly reconfigured."""
+        config = make_config(api_key="new_key")
+        dr = DataReplay("test")
+        dr.reconfigure(config, {})
+        assert dr.api_key == "new_key"
+
+    def test_reconfigure_api_key_id(self):
+        """Test that api_key_id is properly reconfigured."""
+        config = make_config(api_key_id="new_key_id")
+        dr = DataReplay("test")
+        dr.reconfigure(config, {})
+        assert dr.api_key_id == "new_key_id"
+
+    def test_reconfigure_both_api_keys(self):
+        """Test that both api_key and api_key_id are properly reconfigured."""
+        config = make_config(api_key="new_key", api_key_id="new_key_id")
+        dr = DataReplay("test")
+        dr.reconfigure(config, {})
+        assert dr.api_key == "new_key"
+        assert dr.api_key_id == "new_key_id"
+
+    def test_reconfigure_without_api_keys(self):
+        """Test that api keys default to empty strings when not provided."""
+        config = make_config(dataset_id="test_dataset")
+        dr = DataReplay("test")
+        dr.reconfigure(config, {})
+        assert dr.api_key == ""
+        assert dr.api_key_id == ""
+
+    def test_reconfigure_resets_previous_values(self):
+        """Test that reconfiguration properly resets previous api_key values."""
+        dr = DataReplay("test")
+        dr.api_key = "old_key"
+        dr.api_key_id = "old_key_id"
+
+        config = make_config()
+        dr.reconfigure(config, {})
+        assert dr.api_key == ""
+        assert dr.api_key_id == ""
 
 
 class TestLocalEnv:
@@ -76,7 +214,8 @@ class TestLocalEnv:
     @pytest.mark.local
     def test_local_env_or_dotenv_has_viam_credentials(self, load_dotenv_if_present):
         # No network: just asserts the env vars exist (and are non-empty after strip)
-        DataReplay._get_viam_env_credentials()
+        dr = DataReplay("test")
+        dr._get_viam_credentials()
 
 
 class TestViamDatasetReadLocal:
