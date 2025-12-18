@@ -17,7 +17,7 @@ setup: clean
 # ---- test ---------------------------------------------------------------
 test:
 	@echo "Running tests..."
-	$(VENV_BIN)/python -m pytest tests/ -v
+	$(PY) -m pytest tests/ -v
 
 # ---- build --------------------------------------------------------------
 build: setup 

@@ -21,7 +21,7 @@ HIDDEN=(--hidden-import=viam --hidden-import=PIL --collect-all viam)
 "$PY" -m PyInstaller --onefile --name main \
   "${HIDDEN[@]}" \
   --distpath dist --specpath build --workpath build \
-  main.py
+  src/main.py
 
 # Make Linux binary executable if present
 chmod +x dist/main 2>/dev/null || true

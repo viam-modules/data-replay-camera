@@ -38,7 +38,7 @@ class DataReplay(Camera, Reconfigurable):
         distortion_parameters = None
         mime_types : List[str] = [CameraMimeType.JPEG]
     
-    MODEL: ClassVar[Model] = Model(ModelFamily("viam-modules", "camera"), "data-replay")
+    MODEL: ClassVar[Model] = Model(ModelFamily("viam", "data-replay-camera"), "data-replay")
     
     camera_properties: Camera.Properties = Properties()
 
