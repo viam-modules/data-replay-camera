@@ -16,8 +16,12 @@ setup: clean
 
 # ---- test ---------------------------------------------------------------
 test:
-	@echo "Running tests..."
+	@echo "Running all tests (including local)..."
 	$(PY) -m pytest tests/ -v
+
+test-ci:
+	@echo "Running CI tests (skipping local)..."
+	$(PY) -m pytest -m "not local" tests/ -v
 
 # ---- build --------------------------------------------------------------
 build: setup 
