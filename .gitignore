@@ -164,3 +164,4 @@ cython_debug/
 module.tar.gz
 viam-env
 .installed
+.pkg/

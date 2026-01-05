@@ -1,0 +1,22 @@
+name: Run lint & unit tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: "Run unit tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: make setup
+
+      - name: Run unit tests
+        run: make test-ci

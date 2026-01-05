@@ -1,0 +1,22 @@
+[project]
+name = "data-replay-camera"
+version = "0.1.0"
+description = "Viam camera module that retrieves images from Viam data management"
+requires-python = ">=3.8"
+dependencies = [
+    "viam-sdk",
+    "pillow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "python-dotenv",
+]
+
+[tool.pytest.ini_options]
+markers = [
+  "local: tests that require local machine credentials or .env"
+]

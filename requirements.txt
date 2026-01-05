@@ -1,2 +1,5 @@
-viam-sdk~=0.22.0
+viam-sdk
 pillow
+python-dotenv
+pytest
+pytest-asyncio
