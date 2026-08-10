@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Viam camera module that retrieves images from Viam data management"
 requires-python = ">=3.8"
 dependencies = [
-    "viam-sdk",
+    "viam-sdk==0.79.1",
     "pillow",
 ]
 
